@@ -75,6 +75,13 @@
         video::-internal-media-controls-download-button {
             display: none;
         }
+        .game-over {
+            text-align: center;
+            color: red;
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -94,6 +101,7 @@
                 </video>
             </div>
         </div>
+        <div class="game-over" id="gameOverMessage" style="display:none;">Game Over! Try again!</div>
     </div>
     <script>
         const canvas = document.getElementById("gameCanvas");
@@ -103,6 +111,7 @@
         const scorePanel = document.getElementById("scorePanel");
         const nextLevelBtn = document.getElementById("nextLevelBtn");
         const replayBtn = document.getElementById("replayBtn");
+        const gameOverMessage = document.getElementById("gameOverMessage");
 
         const GRID_SIZE = 20;
         const LEVELS = [
@@ -124,6 +133,18 @@
                 description: "Level 3: Challenge yourself with 15 points!",
                 video: "video3.mp4",
             },
+            {
+                points: 20,
+                speed: 140,
+                description: "Level 4: 20 points will unlock this reward!",
+                video: "video1.mp4",
+            },
+            {
+                points: 25,
+                speed: 120,
+                description: "Level 5: Final level! Earn 25 points for the ultimate reward!",
+                video: "video2.mp4",
+            }
         ];
 
         let snake = [{ x: 5, y: 5 }];
@@ -214,6 +235,7 @@
             levelDescription.textContent = LEVELS[currentLevel].description;
             scorePanel.textContent = `Points Collected: 0 / ${LEVELS[currentLevel].points}`;
             gameInterval = setInterval(gameLoop, LEVELS[currentLevel].speed);
+            gameOverMessage.style.display = "none";  // Hide the "Game Over" message on restart
         }
 
         function endGame(won) {
@@ -222,20 +244,21 @@
                 rewardVideo.style.filter = "none";
                 nextLevelBtn.disabled = false;
             } else {
+                gameOverMessage.style.display = "block"; // Show "Game Over" message
                 replayBtn.style.display = "inline";
             }
         }
 
         function handleTouchStart(event) {
             const touch = event.touches[0];
-            touchStart = { x: touch.clientX, y: touch.clientY };
+            touchStart.x = touch.pageX;
+            touchStart.y = touch.pageY;
         }
 
         function handleTouchMove(event) {
-            if (!touchStart) return;
             const touch = event.touches[0];
-            const dx = touch.clientX - touchStart.x;
-            const dy = touch.clientY - touchStart.y;
+            const dx = touch.pageX - touchStart.x;
+            const dy = touch.pageY - touchStart.y;
 
             if (Math.abs(dx) > Math.abs(dy)) {
                 direction = { x: dx > 0 ? 1 : -1, y: 0 };
@@ -243,11 +266,15 @@
                 direction = { x: 0, y: dy > 0 ? 1 : -1 };
             }
 
-            touchStart = null;
+            touchStart.x = touch.pageX;
+            touchStart.y = touch.pageY;
         }
 
-        canvas.addEventListener("touchstart", handleTouchStart);
-        canvas.addEventListener("touchmove", handleTouchMove);
+        function changeDirection(x, y) {
+            if ((x !== 0 && direction.x === 0) || (y !== 0 && direction.y === 0)) {
+                direction = { x, y };
+            }
+        }
 
         nextLevelBtn.addEventListener("click", () => {
             currentLevel++;
@@ -264,6 +291,18 @@
             replayBtn.style.display = "none";
             startGame();
         });
+
+        // Desktop keyboard control
+        window.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowUp") changeDirection(0, -1);
+            if (event.key === "ArrowDown") changeDirection(0, 1);
+            if (event.key === "ArrowLeft") changeDirection(-1, 0);
+            if (event.key === "ArrowRight") changeDirection(1, 0);
+        });
+
+        // Touch control for mobile
+        canvas.addEventListener("touchstart", handleTouchStart);
+        canvas.addEventListener("touchmove", handleTouchMove);
 
         startGame();
     </script>
