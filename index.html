@@ -30,10 +30,32 @@
             box-shadow: 0 0 10px #000, 0 0 20px #444;
             width: 90%;
             max-width: 400px;
+            touch-action: none; /* Disable default gestures for touch controls */
+        }
+        .description, .score-panel {
+            margin: 10px 0;
+            text-align: center;
+        }
+        .buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .buttons button {
+            padding: 10px;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            background: #444;
+            color: #fff;
+        }
+        .buttons button:hover {
+            background: #666;
         }
         .video-container {
             width: 90%;
-            max-width: 320px;
+            max-width: 400px;
+            margin-top: 20px;
         }
         .video-wrapper {
             position: relative;
@@ -48,48 +70,10 @@
             object-fit: contain;
             filter: blur(10px);
             transition: filter 0.5s;
+            pointer-events: none;
         }
         video::-internal-media-controls-download-button {
             display: none;
-        }
-        video {
-            pointer-events: none;
-        }
-        .description, .score-panel {
-            margin: 10px 0;
-            text-align: center;
-        }
-        .buttons button {
-            padding: 10px;
-            margin-right: 10px;
-            font-size: 16px;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
-            background: #444;
-            color: #fff;
-        }
-        .buttons button:hover {
-            background: #666;
-        }
-        .controls {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .controls button {
-            width: 60px;
-            height: 60px;
-            font-size: 18px;
-            border-radius: 50%;
-            background: #444;
-            color: #fff;
-            border: none;
-            cursor: pointer;
-        }
-        .controls button:hover {
-            background: #666;
         }
     </style>
 </head>
@@ -97,28 +81,18 @@
     <h1>Snake Game</h1>
     <div class="container">
         <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <p class="description" id="levelDescription">Level 1: Collect 5 points to clear the video!</p>
+        <div class="score-panel" id="scorePanel">Points Collected: 0 / 5</div>
+        <div class="buttons">
+            <button id="nextLevelBtn" disabled>Next Level</button>
+            <button id="replayBtn" style="display: none;">Replay</button>
+        </div>
         <div class="video-container">
             <div class="video-wrapper">
                 <video id="rewardVideo" muted loop disablePictureInPicture controlsList="nodownload">
                     <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
                 </video>
             </div>
-            <p class="description" id="levelDescription">Level 1: Collect 5 points to clear the video!</p>
-            <div class="score-panel" id="scorePanel">
-                Points Collected: 0 / 5
-            </div>
-            <div class="buttons">
-                <button id="nextLevelBtn" disabled>Next Level</button>
-                <button id="replayBtn" style="display: none;">Replay</button>
-            </div>
-        </div>
-        <div class="controls">
-            <button onclick="changeDirection(0, -1)">▲</button>
-            <div>
-                <button onclick="changeDirection(-1, 0)">◄</button>
-                <button onclick="changeDirection(1, 0)">►</button>
-            </div>
-            <button onclick="changeDirection(0, 1)">▼</button>
         </div>
     </div>
     <script>
@@ -150,18 +124,6 @@
                 description: "Level 3: Challenge yourself with 15 points!",
                 video: "video3.mp4",
             },
-            {
-                points: 20,
-                speed: 140,
-                description: "Level 4: 20 points will unlock this reward!",
-                video: "video1.mp4",
-            },
-            {
-                points: 25,
-                speed: 120,
-                description: "Level 5: Final level! Earn 25 points for the ultimate reward!",
-                video: "video2.mp4",
-            },
         ];
 
         let snake = [{ x: 5, y: 5 }];
@@ -170,6 +132,7 @@
         let score = 0;
         let currentLevel = 0;
         let gameInterval;
+        let touchStart = { x: 0, y: 0 };
 
         function drawSnake() {
             snake.forEach((segment, index) => {
@@ -226,7 +189,7 @@
         function updateVideoBlur() {
             const maxPoints = LEVELS[currentLevel].points;
             const blurLevel = Math.max(10 - (score / maxPoints) * 10, 0);
-            rewardVideo.style.filter = `blur(${blurLevel}px)`; 
+            rewardVideo.style.filter = `blur(${blurLevel}px)`;
         }
 
         function draw() {
@@ -259,16 +222,32 @@
                 rewardVideo.style.filter = "none";
                 nextLevelBtn.disabled = false;
             } else {
-                alert("Game Over! Try again.");
                 replayBtn.style.display = "inline";
             }
         }
 
-        function changeDirection(x, y) {
-            if ((x !== 0 && direction.x === 0) || (y !== 0 && direction.y === 0)) {
-                direction = { x, y };
-            }
+        function handleTouchStart(event) {
+            const touch = event.touches[0];
+            touchStart = { x: touch.clientX, y: touch.clientY };
         }
+
+        function handleTouchMove(event) {
+            if (!touchStart) return;
+            const touch = event.touches[0];
+            const dx = touch.clientX - touchStart.x;
+            const dy = touch.clientY - touchStart.y;
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+                direction = { x: dx > 0 ? 1 : -1, y: 0 };
+            } else {
+                direction = { x: 0, y: dy > 0 ? 1 : -1 };
+            }
+
+            touchStart = null;
+        }
+
+        canvas.addEventListener("touchstart", handleTouchStart);
+        canvas.addEventListener("touchmove", handleTouchMove);
 
         nextLevelBtn.addEventListener("click", () => {
             currentLevel++;
